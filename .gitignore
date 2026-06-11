@@ -1,0 +1,13 @@
+# vim backup
+*~
+
+# vim swap
+*.swp
+*.swo
+
+# python
+__pycache__/
+*.pyc
+
+# venv
+.venv/
