@@ -11,3 +11,11 @@ __pycache__/
 
 # venv
 .venv/
+
+# cpp
+.vscode/
+*.exe
+fun/
+
+# test_data
+data/
