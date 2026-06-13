@@ -19,3 +19,4 @@ fun/
 
 # test_data
 data/
+*.txt
