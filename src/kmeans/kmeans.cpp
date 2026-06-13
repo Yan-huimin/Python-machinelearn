@@ -44,14 +44,6 @@ double distance(const std::vector<double>& a, const std::vector<double>& b){
     return std::sqrt(sum);
 }
 
-double squareDistance(const std::vector<double>& a, const std::vector<double>& b){
-    double sum = 0.0;
-    for(size_t i = 0; i < a.size(); i++){
-        sum += (a[i] - b[i]) * (a[i] - b[i]);
-    }
-    return sum;
-}
-
 std::vector<std::vector<double>> getData(const std::string& filename){
     std::vector<std::vector<double>> data;
 
@@ -98,7 +90,14 @@ std::vector<double> randomCenterPoint(const std::vector<std::vector<double>>& da
     std::vector<double> min_dist_sq(n, std::numeric_limits<double>::max());
     for(size_t i = 0; i < n; i++){
         for(size_t j = 0; j < rpt.size(); j++){
-            double d2 = squareDistance(data[i], rpt[j]);
+            // double d2 = squareDistance(data[i], rpt[j]);
+            double d2 = []() -> double {
+                double sum = 0.0;
+                for(size_t k = 0; k < data[i].size(); k++){
+                    sum += (data[i][k] - rpt[j][k]) * (data[i][k] - rpt[j][k]);
+                }
+                return sum;
+            }();
             min_dist_sq[i] = std::min(d2, min_dist_sq[i]);
         }
     }
