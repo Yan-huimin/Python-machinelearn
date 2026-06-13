@@ -44,6 +44,14 @@ double distance(const std::vector<double>& a, const std::vector<double>& b){
     return std::sqrt(sum);
 }
 
+double squareDistance(const std::vector<double>& a, const std::vector<double>& b){
+    double sum = 0.0;
+    for(size_t i = 0; i < a.size(); i++){
+        sum += (a[i] - b[i]) * (a[i] - b[i]);
+    }
+    return sum;
+}
+
 std::vector<std::vector<double>> getData(const std::string& filename){
     std::vector<std::vector<double>> data;
 
@@ -90,14 +98,7 @@ std::vector<double> randomCenterPoint(const std::vector<std::vector<double>>& da
     std::vector<double> min_dist_sq(n, std::numeric_limits<double>::max());
     for(size_t i = 0; i < n; i++){
         for(size_t j = 0; j < rpt.size(); j++){
-            // double d2 = squareDistance(data[i], rpt[j]);
-            double d2 = []() -> double {
-                double sum = 0.0;
-                for(size_t k = 0; k < data[i].size(); k++){
-                    sum += (data[i][k] - rpt[j][k]) * (data[i][k] - rpt[j][k]);
-                }
-                return sum;
-            }();
+            double d2 = squareDistance(data[i], rpt[j]);
             min_dist_sq[i] = std::min(d2, min_dist_sq[i]);
         }
     }
@@ -119,8 +120,10 @@ std::vector<std::vector<double>> generateCentroidsPulsPlus(const std::vector<std
     return res;
 }
 
-void writeClusters(const std::vector<std::vector<std::vector<double>>>& clustersRes, int k, const std::string& option){
-    std::ofstream outFile("..\\data\\clusters_" + option + std::to_string(k) + ".txt");
+std::string writeClusters(const std::vector<std::vector<std::vector<double>>>& clustersRes, int k, const std::string& option){
+    const std::string& filename = "..\\..\\data\\clusters_" + option + std::to_string(k) + ".txt";
+
+    std::ofstream outFile(filename);
     for(size_t i = 0; i < clustersRes.size(); i++){
         outFile << "Cluster " << i + 1 << ":" << std::endl;
         for(const auto& point : clustersRes[i]){
@@ -131,6 +134,8 @@ void writeClusters(const std::vector<std::vector<std::vector<double>>>& clusters
         }
     }
     outFile.close();
+
+    return filename;
 }
 
 void KMeans(int k, const std::string& filename = "data.txt", const std::string& option = "plus")
@@ -192,7 +197,9 @@ void KMeans(int k, const std::string& filename = "data.txt", const std::string& 
     }
 
     // 输出结果
-    writeClusters(resultClusters, k, option);
+    const std::string path = writeClusters(resultClusters, k, option);
+    std::string cmd = "python check-kmean.py " + path;
+    system(cmd.c_str()); 
 }
 
 int main(int argc, char** argv)
