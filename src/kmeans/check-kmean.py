@@ -1,23 +1,25 @@
 #!/usr/bin/env python
 import sys
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D  # 用于 3D 投影
 import re
+import warnings
 
 def parse_clusters(filepath):
     """
     解析格式为：
     Cluster 1:
-    -7.20328 6.58626 
-    -7.53198 7.8988 
+    -7.20328 6.58626
+    -7.53198 7.8988
     ...
-    Cluster 2:
-    5.6469 -8.62495 
-    ...
-    的文件，返回字典 {簇名: [(x1,y1), (x2,y2), ...]}。
+    返回 (clusters_dict, n_dims)：
+      - clusters_dict: {簇名: [(坐标元组), ...]}
+      - n_dims: 数据维度 (2 或 3)
     """
     clusters = {}
     current_label = None
-    cluster_pattern = re.compile(r'^Cluster\s+(\d+):\s*$')  # 匹配 "Cluster 1:" 等
+    n_dims = None
+    cluster_pattern = re.compile(r'^Cluster\s+(\d+):\s*$')
 
     with open(filepath, 'r', encoding='utf-8') as f:
         for raw_line in f:
@@ -31,18 +33,23 @@ def parse_clusters(filepath):
                 clusters.setdefault(current_label, [])
                 continue
 
-            # 否则尝试解析为两个浮点数
+            # 解析浮点数行
             parts = line.split()
-            if len(parts) >= 2:
-                try:
-                    x, y = float(parts[0]), float(parts[1])
-                    if current_label is not None:
-                        clusters[current_label].append((x, y))
-                except ValueError:
-                    # 忽略无法解析的行（比如可能是其他文本）
-                    pass
+            try:
+                coords = [float(p) for p in parts]
+            except ValueError:
+                continue  # 忽略无效行
 
-    return clusters
+            if n_dims is None and coords:
+                n_dims = len(coords)   # 以第一个有效点的维度为准
+            if n_dims is not None and len(coords) != n_dims:
+                warnings.warn(f"忽略维度不一致的点: {coords} (期望{n_dims}维)")
+                continue
+
+            if current_label is not None:
+                clusters[current_label].append(tuple(coords))
+
+    return clusters, n_dims
 
 def main():
     if len(sys.argv) < 2:
@@ -52,34 +59,61 @@ def main():
     filepath = sys.argv[1]
 
     try:
-        clusters = parse_clusters(filepath)
+        clusters, n_dims = parse_clusters(filepath)
     except Exception as e:
         print(f"读取文件失败: {e}")
         sys.exit(1)
 
-    if not clusters:
+    if not clusters or n_dims is None:
         print("未找到有效的簇数据")
         sys.exit(1)
 
-    # 统计总样本数
     total_points = sum(len(points) for points in clusters.values())
-    cluster_names = sorted(clusters.keys())  # 按簇编号排序
-    print(f"读取到 {len(cluster_names)} 个簇，共计 {total_points} 个点")
+    cluster_names = sorted(clusters.keys())
+    print(f"读取到 {len(cluster_names)} 个簇，共计 {total_points} 个点，维度：{n_dims}D")
 
-    # 创建绘图
-    plt.figure(figsize=(8, 6))
-    colors = plt.cm.tab10  # 使用颜色映射，确保不同颜色
+    # 根据维度创建图形
+    if n_dims == 2:
+        plt.figure(figsize=(8, 6))
+        colors = plt.cm.tab10
+        for idx, cname in enumerate(cluster_names):
+            points = clusters[cname]
+            xs = [p[0] for p in points]
+            ys = [p[1] for p in points]
+            plt.scatter(xs, ys, s=10, alpha=0.7, color=colors(idx % 10), label=cname)
+        plt.xlabel("Feature 1")
+        plt.ylabel("Feature 2")
+    elif n_dims == 3:
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        colors = plt.cm.tab10
+        for idx, cname in enumerate(cluster_names):
+            points = clusters[cname]
+            xs = [p[0] for p in points]
+            ys = [p[1] for p in points]
+            zs = [p[2] for p in points]
+            ax.scatter(xs, ys, zs, s=10, alpha=0.7, color=colors(idx % 10), label=cname)
+        ax.set_xlabel("Feature 1")
+        ax.set_ylabel("Feature 2")
+        ax.set_zlabel("Feature 3")
+    else:
+        # 维度 >3：降维显示前三维，并提示
+        print(f"警告：数据为{n_dims}维，仅显示前三维。")
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        colors = plt.cm.tab10
+        for idx, cname in enumerate(cluster_names):
+            points = clusters[cname]
+            xs = [p[0] for p in points]
+            ys = [p[1] for p in points]
+            zs = [p[2] if len(p) > 2 else 0 for p in points]  # 保证第三维存在
+            ax.scatter(xs, ys, zs, s=10, alpha=0.7, color=colors(idx % 10), label=cname)
+        ax.set_xlabel("Feature 1")
+        ax.set_ylabel("Feature 2")
+        ax.set_zlabel("Feature 3")
 
-    for idx, cname in enumerate(cluster_names):
-        points = clusters[cname]
-        xs = [p[0] for p in points]
-        ys = [p[1] for p in points]
-        color = colors(idx % 10)  # 最多10种颜色循环
-        plt.scatter(xs, ys, s=10, alpha=0.7, color=color, label=cname)
-
-    plt.title(f"Cluster Visualization from {filepath}\n({total_points} points in {len(cluster_names)} clusters)")
-    plt.xlabel("Feature 1")
-    plt.ylabel("Feature 2")
+    plt.title(f"Cluster Visualization from {filepath}\n"
+              f"({total_points} points in {len(cluster_names)} clusters, {n_dims}D)")
     plt.grid(True, alpha=0.3)
     plt.legend(markerscale=2, fontsize='small', loc='best')
     plt.tight_layout()

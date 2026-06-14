@@ -73,8 +73,8 @@ def generate_kmeans_data(
 if __name__ == "__main__":
     X, y = generate_kmeans_data(
         n_samples=500,
-        n_features=2,
-        n_clusters=3,
+        n_features=3,
+        n_clusters=6,
         cluster_std=1.5,
         center_box=(-10, 10),
         random_state=123,
