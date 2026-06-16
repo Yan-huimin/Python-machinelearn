@@ -198,7 +198,7 @@ void KMeans(int k, const std::string& filename = "data.txt", const std::string& 
 
     // 输出结果
     const std::string path = writeClusters(resultClusters, k, option);
-    std::string cmd = "python check-kmean.py " + path;
+    std::string cmd = "python ../check-kmean.py " + path;
     system(cmd.c_str()); 
 }
 
