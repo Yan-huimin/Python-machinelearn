@@ -198,7 +198,7 @@ int main(int argc, char** argv){
     return (0);
 }
 
-/** DBSCAN算法实现 @copyright (https://zh.wikipedia.org/wiki/DBSCAN)
+/** DBSCAN算法实现 @copyright(https://zh.wikipedia.org/wiki/DBSCAN)
 DBSCAN(D, eps, MinPts) {
    C = 0
    for each point P in dataset D {
