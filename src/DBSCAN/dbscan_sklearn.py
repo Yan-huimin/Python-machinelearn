@@ -70,6 +70,8 @@ def visualize(data: np.ndarray, labels: np.ndarray,
     n_clusters = len(cluster_labels)
     n_noise = int(np.sum(labels == -1))
 
+    print(n_noise)
+
     # ---- 调色：噪声用灰色，簇用 tab10 ----
     cmap = plt.cm.tab10
     noise_color = (0.6, 0.6, 0.6)  # 灰色
@@ -137,15 +139,15 @@ def visualize(data: np.ndarray, labels: np.ndarray,
         ax.set_zlabel("Feature 3")
 
     # ---- 标题与图例 ----
-    ax.set_title(
-        f"sklearn DBSCAN  —  eps={eps}, min_samples={min_samples}\n"
-        f"Source: {data_path}\n"
-        f"({data.shape[0]} points, {n_clusters} clusters, {n_noise} noise)",
-        fontsize=11
-    )
+    # ax.set_title(
+    #     f"sklearn DBSCAN  —  eps={eps}, min_samples={min_samples}\n"
+    #     f"Source: {data_path}\n"
+    #     f"({data.shape[0]} points, {n_clusters} clusters, {n_noise} noise)",
+    #     fontsize=11
+    # )
     ax.grid(True, alpha=0.3)
-    ax.legend(markerscale=2, fontsize='small', loc='best',
-              ncol=max(1, (n_clusters + 1) // 15))
+    # ax.legend(markerscale=2, fontsize='small', loc='best',
+    #           ncol=max(1, (n_clusters + 1) // 15))
     fig.tight_layout()
 
     # ---- 保存 ----
@@ -201,7 +203,7 @@ def main():
     labels = db.fit_predict(data)
 
     # ---- 统计 + 可视化 ----
-    print_statistics(labels, n_points)
+    # print_statistics(labels, n_points)
     visualize(data, labels,
               eps=args.eps, min_samples=args.min_samples,
               data_path=str(data_path.resolve()),

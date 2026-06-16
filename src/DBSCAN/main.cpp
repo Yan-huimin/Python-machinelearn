@@ -120,25 +120,20 @@ void expandCluster(std::vector<Point>& points, size_t index,
         seeds.pop_front();
         Point& p = points[currentIndex];
 
-        // [FIX 5b] 按伪代码第218-219行：先处理噪声点 → 归入当前簇（边界点）
-        if(p.clusterId == NOISE){
-            p.clusterId = currentId; // 将噪声点归入当前簇
-            newCluster.push_back(currentIndex);
+        if(p.status == 0)   
+        {
+            p.status = 1; // 标记为已访问
+            auto neighborsIndex = regionQuery(points, currentIndex, radius); // 获取邻域内的点索引
+            // [FIX 7] 使用 static_cast 消除 signed/unsigned 比较警告
+            if(neighborsIndex.size() >= static_cast<size_t>(minPts))
+                for(size_t idx : neighborsIndex)
+                    if(points[idx].status == 0) // 仅将未访问过的点加入种子集合
+                        seeds.push_back(idx);
         }
-        // [FIX 5c] 已访问过的点跳过（不重复做区域查询和种子扩展）
-        if(p.status == 1) continue; // 已访问过的点跳过
-        p.status = 1; // 标记为已访问
-
-        auto neighborsIndex = regionQuery(points, currentIndex, radius); // 获取邻域内的点索引
-        // [FIX 7] 使用 static_cast 消除 signed/unsigned 比较警告
-        if(neighborsIndex.size() >= static_cast<size_t>(minPts))
-            for(size_t idx : neighborsIndex)
-                if(points[idx].status == 0) // 仅将未访问过的点加入种子集合
-                    seeds.push_back(idx);
 
         // [FIX 5d] 按伪代码第226-227行：最终检查 — 尚未分配到任何簇的点归入当前簇
         //         原来缺少此检查，依赖 UNCLASSIFIED == NOISE == -1 的巧合
-        if(p.clusterId == UNCLASSIFIED){
+        if(p.clusterId == UNCLASSIFIED || p.clusterId == NOISE){
             p.clusterId = currentId;
             newCluster.push_back(currentIndex);
         }
@@ -203,42 +198,37 @@ int main(int argc, char** argv){
     return (0);
 }
 
-/** DBSCAN算法实现
-算法 DBSCAN(D, ε, minPts):
-    簇编号 c := 0
-    对于 D 中的每一个点 p，标记 p 为 未访问
+/** DBSCAN算法实现 @copyright (https://zh.wikipedia.org/wiki/DBSCAN)
+DBSCAN(D, eps, MinPts) {
+   C = 0
+   for each point P in dataset D {
+      if P is visited
+         continue next point
+      mark P as visited
+      NeighborPts = regionQuery(P, eps)
+      if sizeof(NeighborPts) < MinPts
+         mark P as NOISE
+      else {
+         C = next cluster
+         expandCluster(P, NeighborPts, C, eps, MinPts)
+      }
+   }
+}
 
-    对于 D 中的每一个点 p：
-        如果 p 已被访问：
-            继续下一次循环
-        标记 p 为 已访问
-        NeighborPts := 区域查询(p, ε)          // 找到 p 的 ε-邻域内的所有点
-        如果 |NeighborPts| < minPts:
-            标记 p 为 噪声
-        否则:
-            c := c + 1                       // 创建一个新簇
-            扩展簇(p, NeighborPts, c, ε, minPts)
+expandCluster(P, NeighborPts, C, eps, MinPts) {
+   add P to cluster C
+   for each point P' in NeighborPts { 
+      if P' is not visited {
+         mark P' as visited
+         NeighborPts' = regionQuery(P', eps)
+         if sizeof(NeighborPts') >= MinPts
+            NeighborPts = NeighborPts joined with NeighborPts'
+      }
+      if P' is not yet member of any cluster
+         add P' to cluster C
+   }
+}
 
-    返回 所有点的簇标签
-
-
-函数 区域查询(p, ε):
-    返回 D 中所有满足 distance(p, q) ≤ ε 的点 q
-
-
-函数 扩展簇(p, NeighborPts, c, ε, minPts):
-    将点 p 分配到簇 c
-    将 NeighborPts 视为一个可扩充的种子集合 Seeds
-
-    对于 Seeds 中的每一个点 q：
-        如果 q 的标签为 噪声：
-            将 q 归入簇 c                    // 噪声点可能成为边界点
-        如果 q 已被访问：
-            继续
-        标记 q 为 已访问
-        NeighborPts_q := 区域查询(q, ε)
-        如果 |NeighborPts_q| ≥ minPts:
-            将 NeighborPts_q 中的所有点加入到 Seeds
-        如果 q 尚未被分配到任何簇：
-            将 q 分配到簇 c
+regionQuery(P, eps)
+   return all points within P's eps-neighborhood (including P)
  */
