@@ -20,3 +20,6 @@ fun/
 # test_data
 data/
 *.txt
+
+# claude
+.cluade/
